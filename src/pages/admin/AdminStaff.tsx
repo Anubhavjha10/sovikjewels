@@ -19,6 +19,7 @@ export const AdminStaff: React.FC = () => {
     name: '',
     role: 'staff' as UserRole,
     isActive: true,
+    createdAt: new Date() as StaffUser['createdAt'],
   });
 
   const loadStaff = async () => {
@@ -44,6 +45,7 @@ export const AdminStaff: React.FC = () => {
       name: '',
       role: 'staff',
       isActive: true,
+      createdAt: new Date(),
     });
     setIsModalOpen(true);
   };
@@ -55,6 +57,7 @@ export const AdminStaff: React.FC = () => {
       name: st.name,
       role: st.role,
       isActive: st.isActive,
+      createdAt: st.createdAt,
     });
     setIsModalOpen(true);
   };

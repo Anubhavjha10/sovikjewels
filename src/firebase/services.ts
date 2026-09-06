@@ -634,12 +634,22 @@ export const getReviews = async (onlyApproved = true): Promise<Review[]> => {
 };
 
 export const addReview = async (
-  reviewData: Omit<Review, 'id' | 'createdAt'>
+  reviewData: Omit<Review, 'id' | 'createdAt'>,
+  adminUser?: { uid: string; name: string; email: string }
 ): Promise<string> => {
   const docRef = await addDoc(collection(db, 'reviews'), {
     ...reviewData,
     createdAt: serverTimestamp(),
   });
+  if (adminUser) {
+    await logAuditAction(
+      adminUser.uid,
+      adminUser.name,
+      adminUser.email,
+      'Review Created',
+      reviewData.customerName
+    );
+  }
   return docRef.id;
 };
 

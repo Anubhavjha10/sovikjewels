@@ -17,12 +17,12 @@ export const AdminPopups: React.FC = () => {
 
   const [formData, setFormData] = useState({
     title: '',
-    subtitle: '',
+    description: '',
     image: '',
     delaySeconds: 3,
-    ctaText: 'Shop Festive Offer',
-    ctaLink: '/shop',
-    frequency: 'once_per_session' as const,
+    buttonText: 'Shop Festive Offer',
+    buttonUrl: '/shop',
+    frequency: 'once_per_session' as 'once_per_session' | 'always',
     isActive: true,
   });
 
@@ -46,11 +46,11 @@ export const AdminPopups: React.FC = () => {
     setEditingPopup(null);
     setFormData({
       title: 'Festive Season Special!',
-      subtitle: 'Get a complimentary Velvet Jewellery Box on all WhatsApp orders above ₹1,499!',
+      description: 'Get a complimentary Velvet Jewellery Box on all WhatsApp orders above ₹1,499!',
       image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=600',
       delaySeconds: 3,
-      ctaText: 'CLAIM OFFER ON WHATSAPP',
-      ctaLink: '/shop',
+      buttonText: 'CLAIM OFFER ON WHATSAPP',
+      buttonUrl: '/shop',
       frequency: 'once_per_session',
       isActive: true,
     });
@@ -61,11 +61,11 @@ export const AdminPopups: React.FC = () => {
     setEditingPopup(p);
     setFormData({
       title: p.title,
-      subtitle: p.subtitle || '',
+      description: p.description || '',
       image: p.image || '',
       delaySeconds: p.delaySeconds || 3,
-      ctaText: p.ctaText || 'Shop Now',
-      ctaLink: p.ctaLink || '/shop',
+      buttonText: p.buttonText || 'Shop Now',
+      buttonUrl: p.buttonUrl || '/shop',
       frequency: p.frequency || 'once_per_session',
       isActive: p.isActive,
     });
@@ -79,11 +79,11 @@ export const AdminPopups: React.FC = () => {
 
     const payload = {
       title: formData.title.trim(),
-      subtitle: formData.subtitle.trim(),
+      description: formData.description.trim(),
       image: formData.image,
       delaySeconds: Number(formData.delaySeconds),
-      ctaText: formData.ctaText.trim(),
-      ctaLink: formData.ctaLink.trim(),
+      buttonText: formData.buttonText.trim(),
+      buttonUrl: formData.buttonUrl.trim(),
       frequency: formData.frequency,
       isActive: formData.isActive,
     };
@@ -166,7 +166,7 @@ export const AdminPopups: React.FC = () => {
             >
               <div>
                 <h3 className="font-serif font-bold text-burgundy text-lg">{popup.title}</h3>
-                <p className="text-xs text-charcoal-muted mt-1">{popup.subtitle}</p>
+                <p className="text-xs text-charcoal-muted mt-1">{popup.description}</p>
                 <span className="text-[10px] text-gray-400 font-mono block mt-2">
                   Delay: {popup.delaySeconds}s | Frequency: {popup.frequency}
                 </span>
@@ -229,11 +229,11 @@ export const AdminPopups: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-charcoal uppercase block mb-1">Subtitle Message</label>
+                <label className="font-semibold text-charcoal uppercase block mb-1">Popup Description</label>
                 <textarea
                   rows={2}
-                  value={formData.subtitle}
-                  onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full p-2.5 bg-ivory border border-gold-300 rounded-xl"
                 />
               </div>

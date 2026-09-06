@@ -276,7 +276,7 @@ export const AdminOrderDetail: React.FC = () => {
               </div>
               <div className="flex justify-between text-gray-500">
                 <span>Shipping Fee:</span>
-                <span>+{formatCurrency(order.shippingCharge)}</span>
+                <span>+{formatCurrency(order.shippingCharge || 0)}</span>
               </div>
               <div className="flex justify-between text-emerald-700">
                 <span>Discount Applied:</span>
@@ -345,25 +345,25 @@ export const AdminOrderDetail: React.FC = () => {
           </div>
 
           {/* Status Change History Timeline */}
-          {order.history && order.history.length > 0 && (
+          {order.statusHistory && order.statusHistory.length > 0 && (
             <div className="bg-white p-6 rounded-2xl border border-gold-200/60 shadow-sm space-y-3 text-xs">
               <h3 className="font-serif font-bold text-burgundy text-base border-b border-ivory pb-2">
                 Order Timeline Audit History
               </h3>
 
               <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                {order.history.map((h, i) => (
+                {order.statusHistory.map((h, i) => (
                   <div key={i} className="bg-ivory p-3 rounded-xl border border-gold-200 space-y-1">
                     <div className="flex items-center justify-between font-bold text-burgundy">
                       <span>{h.status}</span>
                       <span className="text-[10px] text-gray-400 font-normal">
-                        {formatDate(h.updatedAt)}
+                        {formatDate(h.timestamp)}
                       </span>
                     </div>
                     {h.note && <p className="text-[11px] text-charcoal-muted italic">"{h.note}"</p>}
                     {h.updatedBy && (
                       <span className="text-[9px] text-gray-400 block font-mono">
-                        By: {h.updatedBy.name || h.updatedBy.email}
+                        By: {h.updatedBy}
                       </span>
                     )}
                   </div>

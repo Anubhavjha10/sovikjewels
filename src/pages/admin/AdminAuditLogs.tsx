@@ -72,17 +72,17 @@ export const AdminAuditLogs: React.FC = () => {
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-ivory/50 transition-colors">
                     <td className="p-3.5 font-mono text-gray-500 whitespace-nowrap">
-                      {formatDateTime(log.createdAt)}
+                      {formatDateTime(log.timestamp)}
                     </td>
                     <td className="p-3.5 font-bold text-burgundy">
-                      {log.performedBy?.name || log.performedBy?.email || 'System'}
+                      {log.userName || log.userEmail || 'System'}
                     </td>
                     <td className="p-3.5">
                       <span className="bg-burgundy/10 text-burgundy font-mono font-bold text-[10px] uppercase px-2 py-0.5 rounded">
                         {log.action}
                       </span>
                     </td>
-                    <td className="p-3.5 font-medium text-charcoal">{log.targetCollection}</td>
+                    <td className="p-3.5 font-medium text-charcoal">{log.target}</td>
                     <td className="p-3.5 text-gray-600 font-mono text-[11px]">{log.details}</td>
                   </tr>
                 ))}

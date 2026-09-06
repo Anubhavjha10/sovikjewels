@@ -11,9 +11,9 @@ import {
   MapPin,
   Package,
 } from 'lucide-react';
-import { Product, OrderItem } from '../../types';
+import { Product, OrderItem, Order } from '../../types';
 import { getProducts, createOrder } from '../../firebase/services';
-import { formatCurrency, generateOrderId } from '../../utils/formatters';
+import { formatCurrency, generateOrderId, generateTrackingToken } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 
 export const AdminCreateOrder: React.FC = () => {
@@ -127,6 +127,7 @@ export const AdminCreateOrder: React.FC = () => {
       name: item.product.name,
       sku: item.product.sku,
       price: item.product.price,
+      discount: 0,
       quantity: item.quantity,
       total: item.product.price * item.quantity,
       image: item.product.images?.[0] || '',
@@ -136,12 +137,13 @@ export const AdminCreateOrder: React.FC = () => {
       ? { uid: staffProfile.uid, name: staffProfile.name, email: staffProfile.email }
       : undefined;
 
-    const payload = {
+    const payload: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
       orderId: orderIdCode,
+      trackingToken: generateTrackingToken(),
       customer: {
         name: customer.name.trim(),
         whatsappNumber: customer.whatsappNumber.trim(),
-        altPhone: customer.altPhone.trim(),
+        alternateMobile: customer.altPhone.trim(),
         email: customer.email.trim(),
         address: customer.address.trim(),
         city: customer.city.trim(),
@@ -153,16 +155,27 @@ export const AdminCreateOrder: React.FC = () => {
       shippingCharge,
       discount: discountAmount,
       total: grandTotal,
-      orderStatus: 'Confirmed' as const,
+      orderStatus: 'Confirmed',
       paymentStatus,
       deliveryPartner: deliveryPartner.trim(),
       trackingNumber: trackingNumber.trim(),
       notes: notes.trim(),
+      orderSource: 'Admin Panel',
+      statusHistory: [
+        {
+          status: 'Confirmed',
+          note: 'Order created via Admin Panel',
+          timestamp: new Date().toISOString(),
+          updatedBy: adminUser?.name || 'Admin',
+        },
+      ],
+      createdBy: adminUser?.name || 'Admin',
+      updatedBy: adminUser?.name || 'Admin',
     };
 
     try {
-      const newOrder = await createOrder(payload, deductStock, adminUser);
-      navigate(`/admin/orders/${newOrder.id}`);
+      const newOrderId = await createOrder(payload, deductStock, adminUser);
+      navigate(`/admin/orders/${newOrderId}`);
     } catch (err: any) {
       console.error('Create order error:', err);
       setError(err.message || 'Failed to create order');

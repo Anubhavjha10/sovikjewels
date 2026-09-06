@@ -123,8 +123,8 @@ export const AdminSettings: React.FC = () => {
               <label className="font-semibold text-charcoal uppercase block mb-1">Brand Name</label>
               <input
                 type="text"
-                value={formData.siteName}
-                onChange={(e) => setFormData({ ...formData, siteName: e.target.value })}
+                value={formData.brandName}
+                onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
                 className="w-full p-2.5 bg-ivory border border-gold-300 rounded-xl"
               />
             </div>

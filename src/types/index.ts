@@ -129,7 +129,13 @@ export type OrderStatus =
   | 'Cancelled'
   | 'Returned';
 
-export type PaymentStatus = 'Pending' | 'Paid' | 'Cash on Delivery';
+export type PaymentStatus =
+  | 'Pending'
+  | 'Paid'
+  | 'Advance Paid'
+  | 'Fully Paid'
+  | 'Cash on Delivery'
+  | 'COD';
 
 export interface OrderStatusHistoryItem {
   status: OrderStatus;
@@ -146,6 +152,7 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   discount: number;
+  shippingCharge?: number;
   total: number;
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
