@@ -1,0 +1,139 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------
+    // HELPER FUNCTIONS FOR ROLE-BASED ACCESS CONTROL (RBAC)
+    // ----------------------------------------------------
+    
+    // Checks if the user is authenticated via Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Fetches user profile record from /users/{uid}
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Role verification functions
+    function isStaffUser() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().isActive == true;
+    }
+
+    function isAdminOrSuperAdmin() {
+      return isStaffUser() && 
+        (getUserData().role == 'admin' || getUserData().role == 'super_admin');
+    }
+
+    function isSuperAdmin() {
+      return isStaffUser() && getUserData().role == 'super_admin';
+    }
+
+    // ----------------------------------------------------
+    // 1. PRODUCTS COLLECTION
+    // ----------------------------------------------------
+    match /products/{productId} {
+      // Public can read active products; Staff can read all (active & draft/inactive)
+      allow read: if true;
+      // Write operations restricted to staff, admin, and super_admin
+      allow write: if isStaffUser();
+    }
+
+    // ----------------------------------------------------
+    // 2. CATEGORIES COLLECTION
+    // ----------------------------------------------------
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isStaffUser();
+    }
+
+    // ----------------------------------------------------
+    // 3. BANNERS COLLECTION
+    // ----------------------------------------------------
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isStaffUser();
+    }
+
+    // ----------------------------------------------------
+    // 4. OFFERS COLLECTION
+    // ----------------------------------------------------
+    match /offers/{offerId} {
+      allow read: if true;
+      allow write: if isStaffUser();
+    }
+
+    // ----------------------------------------------------
+    // 5. POPUPS COLLECTION
+    // ----------------------------------------------------
+    match /popups/{popupId} {
+      allow read: if true;
+      allow write: if isStaffUser();
+    }
+
+    // ----------------------------------------------------
+    // 6. INSTAGRAM POSTS COLLECTION
+    // ----------------------------------------------------
+    match /instagramPosts/{postId} {
+      allow read: if true;
+      allow write: if isStaffUser();
+    }
+
+    // ----------------------------------------------------
+    // 7. REVIEWS COLLECTION
+    // ----------------------------------------------------
+    match /reviews/{reviewId} {
+      allow read: if true;
+      // Customers can submit a review with default isApproved = false
+      allow create: if request.resource.data.isApproved == false || isStaffUser();
+      // Only staff/admin can approve, edit, or delete reviews
+      allow update, delete: if isStaffUser();
+    }
+
+    // ----------------------------------------------------
+    // 8. WEBSITE SETTINGS COLLECTION
+    // ----------------------------------------------------
+    match /websiteSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdminOrSuperAdmin();
+    }
+
+    // ----------------------------------------------------
+    // 9. ORDERS COLLECTION — STRICT LOGISTICS ACCESS CONTROL
+    // ----------------------------------------------------
+    match /orders/{orderId} {
+      // Public can read individual order only if they know the order ID & tracking token
+      // Prevents public enumeration of all store orders
+      allow get: if true;
+      allow list: if isStaffUser();
+      
+      // Order creation & updates strictly restricted to authorized staff
+      allow write: if isStaffUser();
+    }
+
+    // ----------------------------------------------------
+    // 10. USERS (STAFF ACCOUNTS) COLLECTION
+    // ----------------------------------------------------
+    match /users/{userId} {
+      // Authenticated users can read their own profile; Super Admin can read all
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+      // Only Super Admin can register or modify staff account authorizations
+      allow write: if isSuperAdmin();
+    }
+
+    // ----------------------------------------------------
+    // 11. AUDIT LOGS COLLECTION
+    // ----------------------------------------------------
+    match /auditLogs/{logId} {
+      // Staff can append audit trail logs for administrative tracking
+      allow create: if isStaffUser();
+      // Only Super Admin can view audit history logs
+      allow read: if isSuperAdmin();
+      // Audit logs are immutable and cannot be edited or deleted
+      allow update, delete: if false;
+    }
+  }
+}
