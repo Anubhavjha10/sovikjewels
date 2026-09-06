@@ -37,7 +37,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userDocSnap = await getDoc(userDocRef);
 
           if (userDocSnap.exists()) {
-            setStaffProfile(userDocSnap.data() as StaffUser);
+            const profile = userDocSnap.data() as StaffUser;
+            if (profile.role !== 'super_admin' && profile.role !== 'admin') {
+              console.warn(
+                `[Sovik Auth] Profile users/${currentUser.uid} has role "${profile.role}". ` +
+                'Firestore rules only allow role "admin" or "super_admin" to write Website Settings.'
+              );
+            } else if (profile.isActive !== true) {
+              console.warn(
+                `[Sovik Auth] Profile users/${currentUser.uid} is inactive (isActive: ${profile.isActive}). ` +
+                'Set isActive to true in Firestore to enable admin writes such as Business Settings updates.'
+              );
+            }
+            setStaffProfile(profile);
           } else {
             // First user or missing profile fallback: initialize as super_admin
             const initialProfile: StaffUser = {
@@ -48,11 +60,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isActive: true,
               createdAt: new Date().toISOString(),
             };
+            console.warn(
+              `[Sovik Auth] No profile document exists at users/${currentUser.uid}. The UI falls back to super_admin, ` +
+              'but Firestore rules reject admin writes (including Business Settings updates) until this document exists ' +
+              'with { role: "super_admin", isActive: true }. Create it once in Firebase Console → Firestore Database → users collection (document ID = your Firebase Auth UID).'
+            );
             await setDoc(userDocRef, { ...initialProfile, createdAt: serverTimestamp() });
             setStaffProfile(initialProfile);
           }
         } catch (err) {
-          console.error('Error fetching staff profile:', err);
+          console.error(
+            `Error fetching/registering staff profile (users/${currentUser.uid}). ` +
+            'Admin writes such as Business Settings updates will be rejected by Firestore rules until a valid profile document exists with { role: "admin" | "super_admin", isActive: true }.',
+            err
+          );
           // Fallback profile for authenticated user
           setStaffProfile({
             uid: currentUser.uid,
