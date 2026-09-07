@@ -949,25 +949,59 @@ export const seedDatabaseIfEmpty = async (adminUser?: { uid: string; name: strin
 // ----------------------------------------------------
 import { httpsCallable } from 'firebase/functions';
 
-export const generateGeminiProductDescription = async (params: {
+export interface GenerateGeminiDescriptionParams {
   productName: string;
   category?: string;
+  subcategory?: string;
   tags?: string;
   price?: number;
   mrp?: number;
-}): Promise<string> => {
-  // Secure method: Call Firebase Cloud Function
+  colour?: string;
+  material?: string;
+  occasion?: string;
+  style?: string;
+}
+
+export const generateGeminiProductDescription = async (
+  params: GenerateGeminiDescriptionParams
+): Promise<string> => {
+  // Secure method: Call Firebase Cloud Function (or local Vite functions emulator)
   // The Gemini API key is stored ONLY server-side in functions/.env
   // and is never exposed to the browser.
-  const generateFn = httpsCallable<
-    { productName: string; category?: string; tags?: string; price?: number; mrp?: number },
-    { description: string }
-  >(functions, 'generateProductDescription');
+  try {
+    const generateFn = httpsCallable<
+      GenerateGeminiDescriptionParams,
+      { description: string }
+    >(functions, 'generateProductDescription');
 
-  const res = await generateFn(params);
-  if (res?.data?.description) {
-    return res.data.description;
+    const res = await generateFn(params);
+    if (res?.data?.description) {
+      return res.data.description;
+    }
+  } catch (fnErr: any) {
+    console.warn('httpsCallable attempt failed, trying local emulator endpoint:', fnErr?.message || fnErr);
+    // Local dev / preview fallback: directly invoke Vite dev server endpoint
+    try {
+      const fallbackRes = await fetch('/api/generateProductDescription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: params }),
+      });
+      if (fallbackRes.ok) {
+        const fallbackData = await fallbackRes.json();
+        if (fallbackData?.data?.description) {
+          return fallbackData.data.description;
+        }
+      }
+    } catch {
+      // Fall through to error
+    }
+
+    const message =
+      fnErr?.message ||
+      'Unable to generate AI description right now. Please ensure GEMINI_API_KEY is configured in functions/.env.';
+    throw new Error(message);
   }
 
-  throw new Error('Unable to generate AI description right now. Please ensure Firebase Cloud Functions are deployed and GEMINI_API_KEY is configured server-side.');
+  throw new Error('Unable to generate AI description right now. Please try again.');
 };

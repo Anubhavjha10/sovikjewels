@@ -16,6 +16,13 @@ dist-ssr/
 functions/.env
 functions/.env.local
 
+# Secrets & Credentials — never commit keys or service account credentials
+*.pem
+*.key
+*serviceAccount*.json
+*credentials*.json
+secrets/
+
 # Logs
 logs/
 *.log

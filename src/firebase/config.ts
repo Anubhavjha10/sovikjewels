@@ -12,7 +12,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-HWL4NNBC4P"
 };
 
-import { getFunctions } from 'firebase/functions';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -21,4 +21,16 @@ const db = getFirestore(app);
 // us-central1 is the deployed region for the Sovik Jewels Cloud Functions.
 const functions = getFunctions(app, 'us-central1');
 
+if (import.meta.env.DEV) {
+  // In local development, route Cloud Functions to the local Vite dev-server emulator.
+  // This completely eliminates CORS preflight errors and works locally without requiring
+  // Firebase Blaze plan or Cloud Functions deployment.
+  try {
+    connectFunctionsEmulator(functions, 'localhost', 5173);
+  } catch {
+    // Guard against HMR re-connections
+  }
+}
+
 export { app, auth, db, functions };
+

@@ -197,19 +197,17 @@ export const AdminProducts: React.FC = () => {
         description: generatedDesc,
       }));
     } catch (err: any) {
-      // Log the full technical error (CORS/function/API failures) in the dev console
-      // while keeping the user-facing message friendly.
       console.error('AI Description Error:', err?.message || err);
+      const errMsg = err?.message || '';
       if (
-        err?.code === 'functions/unavailable' ||
-        err?.code === 'functions/aborted' ||
-        err?.code === 'unavailable'
+        errMsg.includes('not configured') ||
+        err?.code === 'functions/failed-precondition'
       ) {
-        setAiError('Unable to generate description right now. Please try again.');
-      } else if (err?.code === 'functions/failed-precondition') {
-        setAiError('Gemini API key is not configured on the server yet. Please contact admin.');
+        setAiError('Gemini API key is not configured on the server yet. Please add GEMINI_API_KEY to functions/.env.');
+      } else if (errMsg.includes('quota') || errMsg.includes('rate-limit')) {
+        setAiError('Gemini quota limit reached. Please wait a moment and click Retry.');
       } else {
-        setAiError('Unable to generate description right now. Please try again.');
+        setAiError(errMsg || 'Unable to generate description right now. Please try again.');
       }
     } finally {
       setAiGenerating(false);
@@ -287,10 +285,44 @@ export const AdminProducts: React.FC = () => {
       cleanImages.push('https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800');
     }
 
+    const sanitizedSlug = slugify(formData.slug || formData.name);
+
+    // Check for SKU collisions across existing products
+    const skuCollision = products.find(
+      (p) =>
+        p.sku &&
+        p.sku.trim().toUpperCase() === formData.sku.trim().toUpperCase() &&
+        (!editingProduct || p.id !== editingProduct.id)
+    );
+    if (skuCollision) {
+      setFeedback({
+        type: 'error',
+        message: `SKU "${formData.sku.trim().toUpperCase()}" is already used by "${skuCollision.name}". Each product must have a unique SKU.`,
+      });
+      setSubmitting(false);
+      return;
+    }
+
+    // Check for Slug collisions across existing products
+    const slugCollision = products.find(
+      (p) =>
+        p.slug &&
+        p.slug.trim().toLowerCase() === sanitizedSlug.toLowerCase() &&
+        (!editingProduct || p.id !== editingProduct.id)
+    );
+    if (slugCollision) {
+      setFeedback({
+        type: 'error',
+        message: `URL Slug "${sanitizedSlug}" is already used by "${slugCollision.name}". Each product must have a unique slug.`,
+      });
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       name: formData.name.trim(),
-      slug: formData.slug || slugify(formData.name),
-      sku: formData.sku.trim(),
+      slug: sanitizedSlug,
+      sku: formData.sku.trim().toUpperCase(),
       categoryId: formData.categoryId,
       categoryName: formData.categoryName,
       description: formData.description.trim(),

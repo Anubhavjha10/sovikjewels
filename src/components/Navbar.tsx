@@ -138,8 +138,8 @@ export const Navbar: React.FC = () => {
 
             {/* Desktop Right Utilities */}
             <div className="flex items-center space-x-4">
-              {/* Desktop Search Bar */}
-              <div className="hidden lg:block relative">
+              {/* Desktop / Tablet Search Bar */}
+              <div className="hidden md:block relative">
                 <form onSubmit={handleSearchSubmit} className="relative flex items-center">
                   <input
                     type="text"
@@ -150,12 +150,12 @@ export const Navbar: React.FC = () => {
                       setSearchOpen(true);
                     }}
                     onFocus={() => setSearchOpen(true)}
-                    className="w-48 xl:w-60 text-xs pl-9 pr-3 py-2 bg-ivory rounded-full border border-gold-200 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+                    className="w-40 lg:w-48 xl:w-60 text-xs pl-9 pr-3 py-2 bg-ivory rounded-full border border-gold-200 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
                   />
                   <Search className="w-4 h-4 text-gold-700 absolute left-3 pointer-events-none" />
                 </form>
 
-                {/* Live Search Suggestion Dropdown Desktop */}
+                {/* Live Search Suggestion Dropdown */}
                 <SearchSuggestionDropdown
                   searchQuery={searchQuery}
                   isOpen={searchOpen}

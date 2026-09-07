@@ -24,7 +24,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 export const AdminLayout: React.FC = () => {
-  const { user, staffProfile, loading, role, isStaff, logout } = useAuth();
+  const { user, staffProfile, loading, role, isStaff, isProfilePersistedInFirestore, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -194,6 +194,17 @@ export const AdminLayout: React.FC = () => {
             </Link>
           </div>
         </header>
+
+        {!isProfilePersistedInFirestore && (
+          <div className="bg-amber-50 border-b border-amber-300 px-6 py-2.5 text-xs text-amber-900 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <ShieldAlert className="w-4 h-4 text-amber-700 flex-shrink-0" />
+              <span>
+                <strong>Admin Profile Setup:</strong> Account <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">{user?.email}</code> is authenticated, but no document was found at <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">users/{user?.uid}</code> in Firestore. Create it with <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">role: "super_admin"</code> and <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">isActive: true</code> in Firebase Console to enable admin writes.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Content Area */}
         <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-x-hidden">

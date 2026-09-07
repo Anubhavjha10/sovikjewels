@@ -17,6 +17,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   isStaff: boolean;
+  isProfilePersistedInFirestore: boolean;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [staffProfile, setStaffProfile] = useState<StaffUser | null>(null);
+  const [isProfilePersistedInFirestore, setIsProfilePersistedInFirestore] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -38,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (userDocSnap.exists()) {
             const profile = userDocSnap.data() as StaffUser;
+            setIsProfilePersistedInFirestore(true);
             if (profile.role !== 'super_admin' && profile.role !== 'admin') {
               console.warn(
                 `[Sovik Auth] Profile users/${currentUser.uid} has role "${profile.role}". ` +
@@ -51,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             setStaffProfile(profile);
           } else {
+            setIsProfilePersistedInFirestore(false);
             // First user or missing profile fallback: initialize as super_admin
             const initialProfile: StaffUser = {
               uid: currentUser.uid,
@@ -65,10 +69,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               'but Firestore rules reject admin writes (including Business Settings updates) until this document exists ' +
               'with { role: "super_admin", isActive: true }. Create it once in Firebase Console → Firestore Database → users collection (document ID = your Firebase Auth UID).'
             );
-            await setDoc(userDocRef, { ...initialProfile, createdAt: serverTimestamp() });
+            try {
+              await setDoc(userDocRef, { ...initialProfile, createdAt: serverTimestamp() });
+              setIsProfilePersistedInFirestore(true);
+            } catch {
+              // Expected if firestore rules prevent un-bootstrapped writes
+              setIsProfilePersistedInFirestore(false);
+            }
             setStaffProfile(initialProfile);
           }
         } catch (err) {
+          setIsProfilePersistedInFirestore(false);
           console.error(
             `Error fetching/registering staff profile (users/${currentUser.uid}). ` +
             'Admin writes such as Business Settings updates will be rejected by Firestore rules until a valid profile document exists with { role: "admin" | "super_admin", isActive: true }.',
@@ -86,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         setStaffProfile(null);
+        setIsProfilePersistedInFirestore(false);
       }
       setLoading(false);
     });
@@ -106,6 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await firebaseSignOut(auth);
     setUser(null);
     setStaffProfile(null);
+    setIsProfilePersistedInFirestore(false);
   };
 
   const role = staffProfile?.role || null;
@@ -123,6 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin,
         isSuperAdmin,
         isStaff,
+        isProfilePersistedInFirestore,
         login,
         logout,
       }}

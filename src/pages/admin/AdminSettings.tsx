@@ -7,11 +7,11 @@ import { useAuth } from '../../context/AuthContext';
 
 export const AdminSettings: React.FC = () => {
   const { settings, refreshSettings } = useSettings();
-  const { staffProfile } = useAuth();
+  const { staffProfile, user, isProfilePersistedInFirestore } = useAuth();
 
   const [formData, setFormData] = useState({ ...settings });
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,14 +20,37 @@ export const AdminSettings: React.FC = () => {
 
     const adminUser = staffProfile
       ? { uid: staffProfile.uid, name: staffProfile.name, email: staffProfile.email }
+      : user
+      ? { uid: user.uid, name: user.displayName || 'Admin', email: user.email || '' }
       : undefined;
 
     try {
       await updateWebsiteSettings(formData, adminUser);
       await refreshSettings();
-      setFeedback('Website & WhatsApp settings updated successfully.');
+      setFeedback({
+        type: 'success',
+        message: 'Website & WhatsApp settings updated successfully.',
+      });
     } catch (err: any) {
-      setFeedback(err.message || 'Failed to save settings');
+      console.error('Settings save error:', err);
+      const isPermissionErr =
+        err?.code === 'permission-denied' ||
+        err?.message?.toLowerCase().includes('permission') ||
+        err?.message?.toLowerCase().includes('missing or insufficient');
+
+      if (isPermissionErr) {
+        setFeedback({
+          type: 'error',
+          message:
+            `Missing or insufficient permissions: Firestore rules allow only active admin/super_admin users to write Website Settings. ` +
+            `Ensure your Firebase Auth UID (${adminUser?.uid || user?.uid}) has a document in the "users" collection with { role: "super_admin", isActive: true }.`,
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: err.message || 'Failed to save settings',
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -45,9 +68,24 @@ export const AdminSettings: React.FC = () => {
         </div>
       </div>
 
+      {!isProfilePersistedInFirestore && (
+        <div className="bg-amber-50 border border-amber-300 text-amber-900 text-xs p-4 rounded-xl leading-relaxed">
+          <strong className="font-semibold block mb-1">Notice: Admin Profile Not Verified in Firestore</strong>
+          Your Firebase Auth account is logged in as <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">{user?.email || 'admin'}</code>, but no profile document was found at <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">users/{user?.uid}</code>.
+          Firestore security rules enforce that only records with <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">role: "admin" | "super_admin"</code> and <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">isActive: true</code> can modify settings.
+          Create document <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">users/{user?.uid}</code> in Firebase Console to enable saves.
+        </div>
+      )}
+
       {feedback && (
-        <div className="bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs p-4 rounded-xl font-medium">
-          {feedback}
+        <div
+          className={`text-xs p-4 rounded-xl font-medium ${
+            feedback.type === 'success'
+              ? 'bg-emerald-100 border border-emerald-300 text-emerald-900'
+              : 'bg-rose-100 border border-rose-300 text-rose-900'
+          }`}
+        >
+          {feedback.message}
         </div>
       )}
 

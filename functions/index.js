@@ -62,7 +62,18 @@ exports.generateProductDescription = functions
       );
     }
 
-    const { productName, category, tags, price, mrp } = data || {};
+    const {
+      productName,
+      category,
+      subcategory,
+      tags,
+      price,
+      mrp,
+      colour,
+      material,
+      occasion,
+      style,
+    } = data || {};
 
     if (!productName || typeof productName !== 'string' || !productName.trim()) {
       throw new functions.https.HttpsError(
@@ -75,7 +86,7 @@ exports.generateProductDescription = functions
     const apiKey = resolveGeminiApiKey();
     if (!apiKey) {
       console.error(
-        'GEMINI_API_KEY is not configured. Run:\n' +
+        'GEMINI_API_KEY is not configured. Add it to functions/.env or run:\n' +
           '  firebase functions:config:set gemini.api_key="YOUR_KEY"\n' +
           '  firebase deploy --only functions'
       );
@@ -92,66 +103,87 @@ Create a premium product description for this product:
 
 Product Name: ${productName.trim()}
 ${category ? `Category: ${category}` : ''}
+${subcategory ? `Subcategory: ${subcategory}` : ''}
 ${price ? `Price: ₹${price}` : ''}
 ${mrp ? `MRP: ₹${mrp}` : ''}
-${tags ? `Tags/Style: ${tags}` : ''}
+${tags ? `Tags: ${tags}` : ''}
+${colour ? `Colour: ${colour}` : ''}
+${material ? `Material: ${material}` : ''}
+${occasion ? `Occasion: ${occasion}` : ''}
+${style ? `Style: ${style}` : ''}
 
 Write an elegant, persuasive ecommerce description.
 
 Requirements:
 * 60–100 words.
-* Premium and sophisticated tone.
-* Natural human-like writing.
-* Suitable for an Indian jewellery ecommerce store.
-* Highlight style, elegance, occasions and versatility.
-* Do not make claims about materials or product features that were not provided.
-* Do not invent gemstones, metals, certifications, guarantees or specifications.
-* Avoid excessive emojis.
-* Do not use markdown.
-* Do not use headings unless specifically requested.
-* Return only the final product description.`;
+* Premium and sophisticated tone suitable for an Indian artificial jewellery boutique.
+* Natural human-like copywriting highlighting aesthetic appeal, occasions, and handcrafted feel.
+* Highlight style, elegance, occasions, and versatility.
+* NEVER invent specifications, materials, gemstones, certifications, guarantees, or facts that were not provided above.
+* Avoid excessive emojis (max 1 or none).
+* Do not use markdown (no bold asterisks, no bullet points, no headers).
+* Return ONLY the final product description paragraph.`;
 
-    try {
-      // 4. Call Gemini REST API
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: systemPrompt }],
+    // 4. Candidate models in order of preference with automatic fallback
+    const CANDIDATE_MODELS = [
+      'gemini-flash-lite-latest',
+      'gemini-3.1-flash-lite-preview',
+      'gemini-3-flash-preview',
+      'gemini-flash-latest',
+    ];
+
+    let generatedText = '';
+    let lastErrorMsg = '';
+
+    for (const model of CANDIDATE_MODELS) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [{ text: systemPrompt }],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 1000,
               },
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 250,
-            },
-          }),
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errText = await response.text();
+          console.warn(`Model ${model} returned status ${response.status}:`, errText);
+          lastErrorMsg = `Status ${response.status}: ${errText.slice(0, 120)}`;
+          continue;
         }
-      );
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error('Gemini API Error Response:', errText);
-        throw new Error(`Gemini API returned status ${response.status}`);
+        const result = await response.json();
+        const candidateText =
+          result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+
+        if (candidateText && candidateText.length > 30) {
+          generatedText = candidateText;
+          break;
+        }
+      } catch (err) {
+        console.warn(`Error trying Gemini model ${model}:`, err.message || err);
+        lastErrorMsg = err.message || 'Network error';
       }
+    }
 
-      const result = await response.json();
-      const generatedText =
-        result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-
-      if (!generatedText) {
-        throw new Error('Gemini API returned an empty response.');
-      }
-
-      return { description: generatedText };
-    } catch (err) {
-      console.error('Error generating description with Gemini:', err);
+    if (!generatedText) {
+      console.error('All Gemini candidate models failed. Last error:', lastErrorMsg);
       throw new functions.https.HttpsError(
         'internal',
-        `Unable to generate description right now. ${err.message || 'Please try again.'}`
+        `Unable to generate description right now. ${lastErrorMsg || 'Please try again.'}`
       );
     }
+
+    return { description: generatedText };
   });
