@@ -5,7 +5,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { StaffUser, UserRole } from '../types';
 
@@ -52,48 +52,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 'Set isActive to true in Firestore to enable admin writes such as Business Settings updates.'
               );
             }
+            // Authorization state is read strictly from the Firestore profile document.
             setStaffProfile(profile);
           } else {
+            // SECURITY: no frontend authorization fallback. If the Firestore profile
+            // document is missing, role stays null so no admin capability is granted
+            // client-side (Firestore rules would reject admin writes anyway). The
+            // profile must be created once in Firebase Console / via scripts/checkAdminProfile.mjs.
             setIsProfilePersistedInFirestore(false);
-            // First user or missing profile fallback: initialize as super_admin
-            const initialProfile: StaffUser = {
-              uid: currentUser.uid,
-              name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Admin',
-              email: currentUser.email || '',
-              role: 'super_admin',
-              isActive: true,
-              createdAt: new Date().toISOString(),
-            };
+            setStaffProfile(null);
             console.warn(
-              `[Sovik Auth] No profile document exists at users/${currentUser.uid}. The UI falls back to super_admin, ` +
-              'but Firestore rules reject admin writes (including Business Settings updates) until this document exists ' +
-              'with { role: "super_admin", isActive: true }. Create it once in Firebase Console → Firestore Database → users collection (document ID = your Firebase Auth UID).'
+              `[Sovik Auth] No profile document exists at users/${currentUser.uid}. ` +
+              'Admin authorization is granted ONLY from Firestore, so this account cannot access the CMS until ' +
+              'a document is created there with { role: "super_admin", isActive: true }. ' +
+              'Create it in Firebase Console → Firestore Database → users collection (document ID = your Firebase Auth UID), ' +
+              'or run: node scripts/checkAdminProfile.mjs <UID> <EMAIL> — then reload the page.'
             );
-            try {
-              await setDoc(userDocRef, { ...initialProfile, createdAt: serverTimestamp() });
-              setIsProfilePersistedInFirestore(true);
-            } catch {
-              // Expected if firestore rules prevent un-bootstrapped writes
-              setIsProfilePersistedInFirestore(false);
-            }
-            setStaffProfile(initialProfile);
           }
         } catch (err) {
+          // Read failure must NOT fall back to a client-side super_admin profile.
           setIsProfilePersistedInFirestore(false);
+          setStaffProfile(null);
           console.error(
-            `Error fetching/registering staff profile (users/${currentUser.uid}). ` +
-            'Admin writes such as Business Settings updates will be rejected by Firestore rules until a valid profile document exists with { role: "admin" | "super_admin", isActive: true }.',
+            `Error fetching staff profile (users/${currentUser.uid}). Admin authorization requires this document to be ` +
+            'readable from Firestore with { role: "admin" | "super_admin", isActive: true }. No client-side fallback is applied.',
             err
           );
-          // Fallback profile for authenticated user
-          setStaffProfile({
-            uid: currentUser.uid,
-            name: currentUser.email?.split('@')[0] || 'Admin',
-            email: currentUser.email || '',
-            role: 'super_admin',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-          });
         }
       } else {
         setStaffProfile(null);

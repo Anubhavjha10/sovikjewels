@@ -53,6 +53,16 @@ export const AdminLayout: React.FC = () => {
           <p className="text-xs text-charcoal-muted">
             Your account ({user.email}) has not been granted staff/admin authorization permissions.
           </p>
+          {!staffProfile && !isProfilePersistedInFirestore && (
+            <div className="text-left bg-amber-50 border border-amber-300 text-amber-900 text-[11px] p-3 rounded-xl leading-relaxed">
+              <strong className="font-semibold block mb-1">Admin Profile Setup Required</strong>
+              Authorization is read only from Firestore. Create the document{' '}
+              <code className="font-mono bg-amber-100 px-1 py-0.5 rounded break-all">users/{user.uid}</code> with fields{' '}
+              <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">role: "super_admin"</code> and{' '}
+              <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">isActive: true</code>{' '}
+              (plus uid, name, email) in Firebase Console → Firestore Database, then reload this page.
+            </div>
+          )}
           <button
             onClick={() => logout()}
             className="bg-burgundy text-gold-light text-xs font-bold px-6 py-2.5 rounded-xl uppercase tracking-wider"

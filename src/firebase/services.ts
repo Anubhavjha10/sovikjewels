@@ -627,8 +627,22 @@ export const getReviews = async (onlyApproved = true): Promise<Review[]> => {
         ...docSnap.data(),
       })) as Review[];
     }
-  } catch (err) {
-    console.warn('Reviews fetch fallback:', err);
+  } catch (err: any) {
+    // A "failed-precondition" error means the composite index for this exact query is
+    // not deployed to the project yet. The required index is already defined in
+    // firestore.indexes.json:
+    //   collectionGroup: "reviews" | fields: isApproved (ASCENDING), createdAt (DESCENDING)
+    // Deploy it with: firebase deploy --only firestore:indexes  (never via rule changes).
+    if (err?.code === 'failed-precondition' || /requires an index|no matching index/i.test(err?.message || '')) {
+      console.error(
+        '[Sovik] The approved-reviews query (where isApproved == true, orderBy createdAt desc) requires a composite ' +
+        'index that is not deployed yet. Deploy firestore.indexes.json with: firebase deploy --only firestore:indexes ' +
+        '(or click the index-creation link included in the Firebase error above), wait for it to finish building, ' +
+        'then reload. Serving default demo reviews until then.'
+      );
+    } else {
+      console.warn('Reviews fetch fallback:', err);
+    }
   }
   return DEFAULT_REVIEWS;
 };
