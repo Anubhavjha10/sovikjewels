@@ -993,22 +993,27 @@ export const generateGeminiProductDescription = async (
       return res.data.description;
     }
   } catch (fnErr: any) {
-    console.warn('httpsCallable attempt failed, trying local emulator endpoint:', fnErr?.message || fnErr);
-    // Local dev / preview fallback: directly invoke Vite dev server endpoint
-    try {
-      const fallbackRes = await fetch('/api/generateProductDescription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: params }),
-      });
-      if (fallbackRes.ok) {
-        const fallbackData = await fallbackRes.json();
-        if (fallbackData?.data?.description) {
-          return fallbackData.data.description;
+    console.warn('httpsCallable attempt failed:', fnErr?.message || fnErr);
+    // DEV-only fallback: invoke the Vite dev-server functions emulator defined in
+    // vite.config.ts (geminiDevFunctionsPlugin). In production the deployed Cloud
+    // Function is called via httpsCallable above; requesting /api/* there would
+    // only return index.html from Firebase Hosting's SPA rewrite.
+    if (import.meta.env.DEV) {
+      try {
+        const fallbackRes = await fetch('/api/generateProductDescription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: params }),
+        });
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          if (fallbackData?.data?.description) {
+            return fallbackData.data.description;
+          }
         }
+      } catch {
+        // Fall through to error
       }
-    } catch {
-      // Fall through to error
     }
 
     const message =

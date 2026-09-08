@@ -78,7 +78,13 @@ export const App: React.FC = () => {
                 <Route path="/about" element={<AboutPage />} />
               </Route>
 
-              {/* Admin Portal Authentication */}
+              {/* Admin Portal Authentication.
+                  NOTE: "/admin" is intentionally defined twice. React Router v6
+                  ranks the exact match first, so a bare "/admin" renders AdminLogin
+                  (which redirects to /admin/dashboard when already signed in), while
+                  "/admin/dashboard" etc. match this layout branch below. The server
+                  must serve index.html for /admin (see firebase.json rewrites) —
+                  it is NOT a 404. */}
               <Route path="/admin" element={<AdminLogin />} />
 
               {/* Protected Admin CMS Dashboard Routes */}

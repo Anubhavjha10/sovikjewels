@@ -1,6 +1,6 @@
 {
   "projects": {
-    "y": "sovik-jewels"
+    "default": "sovik-jewels"
   },
   "targets": {},
   "etags": {}

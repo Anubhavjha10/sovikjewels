@@ -75,6 +75,20 @@ Admin authentication/profile state is read **strictly from Firestore** — the a
 
 ---
 
+### 6. Deploy the Website to Firebase Hosting
+
+The production build is deployed to **Firebase Hosting**. The SPA rewrite in `firebase.json` (`"source": "**" → "/index.html"`) is what makes clean URLs work on **direct navigation and refresh** — without it, deep links such as `/admin`, `/shop` or `/product/:slug` return a Hosting 404 because no static file exists at those paths:
+
+```bash
+npm run deploy:hosting
+```
+
+This runs the production build (`npm run build`) and deploys the `dist/` output. Every frontend route (`/`, `/shop`, `/category/:slug`, `/product/:slug`, `/offers`, `/track-order`, `/wishlist`, `/contact`, `/about`, `/admin`, `/admin/dashboard`, `/admin/orders`, …) is served `index.html` by Hosting and then rendered client-side by React Router. Static assets (`/assets/*.js|css`, `/favicon.svg`) are real files, so Hosting serves them directly — the rewrite never swallows them. Hashed asset filenames get immutable caching, while `index.html` is always revalidated so refreshes pick up new deploys immediately.
+
+> The `/admin` CMS is protected **in-app**: the server always serves the app for `/admin*`; the authentication guard (`AdminLayout` + Firebase Auth session persistence, restored via `onAuthStateChanged` before any redirect) decides what to render. Refreshing a signed-in admin session keeps the user logged in (Firebase Auth `browserLocalPersistence`; ID-token refresh is handled automatically by the SDK).
+
+---
+
 ## 🛡️ Firestore Security Architecture & Access Control
 
 * **Public Customers**:
