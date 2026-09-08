@@ -54,7 +54,6 @@ async function seedFirestoreData() {
     console.error('     $env:SEED_ADMIN_EMAIL = "admin@sovikjewels.com"');
     console.error('     $env:SEED_ADMIN_PASSWORD = "<password>"');
     console.error('     npm run seed:db');
-    console.error('   Alternatively use the "Seed Initial Demo Data" button in /admin/dashboard.');
     process.exit(1);
   }
 

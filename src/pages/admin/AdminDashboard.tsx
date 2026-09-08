@@ -9,13 +9,11 @@ import {
   AlertTriangle,
   XCircle,
   Plus,
-  Database,
   Sparkles,
   ChevronRight,
-  Loader2,
 } from 'lucide-react';
 import { Product, Order } from '../../types';
-import { getProducts, getOrders, seedDatabaseIfEmpty } from '../../firebase/services';
+import { getProducts, getOrders } from '../../firebase/services';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { OrderStatusBadge } from '../../components/OrderStatusBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -25,8 +23,6 @@ export const AdminDashboard: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
-  const [seedMessage, setSeedMessage] = useState<string | null>(null);
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -44,24 +40,6 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, []);
-
-  const handleSeedData = async () => {
-    if (!window.confirm('Populate/Seed Firestore with luxury demo products, banners, offers, and categories?')) return;
-    setSeeding(true);
-    setSeedMessage(null);
-    try {
-      const adminInfo = staffProfile
-        ? { uid: staffProfile.uid, name: staffProfile.name, email: staffProfile.email }
-        : undefined;
-      const res = await seedDatabaseIfEmpty(adminInfo);
-      setSeedMessage(res.message);
-      await loadDashboardData();
-    } catch (err: any) {
-      setSeedMessage(err.message || 'Seeding failed');
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const totalProductsCount = products.length;
   const lowStockCount = products.filter((p) => p.stock > 0 && p.stock <= p.lowStockThreshold).length;
@@ -93,32 +71,7 @@ export const AdminDashboard: React.FC = () => {
             Manage jewellery products, track orders, update inventory stock and website settings.
           </p>
         </div>
-
-        {/* Quick Seeding Button */}
-        <button
-          onClick={handleSeedData}
-          disabled={seeding}
-          className="bg-gold hover:bg-gold-dark text-burgundy font-bold text-xs py-3 px-5 rounded-xl shadow-md flex items-center space-x-2 transition-all uppercase tracking-wider"
-        >
-          {seeding ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-burgundy" />
-              <span>Seeding Demo Data...</span>
-            </>
-          ) : (
-            <>
-              <Database className="w-4 h-4 text-burgundy" />
-              <span>Seed Initial Demo Data</span>
-            </>
-          )}
-        </button>
       </div>
-
-      {seedMessage && (
-        <div className="bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs p-4 rounded-xl font-medium">
-          {seedMessage}
-        </div>
-      )}
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
