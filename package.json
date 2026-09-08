@@ -12,7 +12,8 @@
     "test:rules": "firebase emulators:exec --only firestore,auth --project sovik-jewels \"node scripts/firestore-rules-emulator-test.mjs\"",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy:hosting": "npm run build && firebase deploy --only hosting"
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:vercel": "npx --yes vercel --prod"
   },
   "dependencies": {
     "firebase": "^10.13.0",
